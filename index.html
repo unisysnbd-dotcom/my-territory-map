@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Free Territory Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; }
+        body { font-family: sans-serif; margin: 20px; }
+    </style>
+</head>
+<body>
+    <h1>My Territory Mapping Tool</h1>
+    <div id="map"></div>
+    <p>Upload your <b>data.csv</b> to see pins:</p>
+    <input type="file" id="upload-csv" accept=".csv">
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <script>
+        // 1. Initialize the map
+        var map = L.map('map').setView([39.8283, -98.5795], 4); // Center of USA
+
+        // 2. Add the background map (OpenStreetMap - Free)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+// 3. Load ZIP boundaries for multiple states
+// CHECK: Are these names EXACTLY what you uploaded? (Case-sensitive!)
+var states = ['new_jersey.json', 'new_york.json']; 
+
+states.forEach(function(stateFile) {
+    fetch(stateFile)
+        .then(response => {
+            if (!response.ok) throw new Error("File not found: " + stateFile);
+            return response.json();
+        })
+        .then(geojsonData => {
+            L.geoJson(geojsonData, {
+                style: { color: "#3388ff", weight: 2, fillOpacity: 0.1 }
+            }).addTo(map);
+        })
+        .catch(error => console.error("Error:", error));
+});;
+
+        // 4. Handle the Excel (CSV) Upload
+        document.getElementById('upload-csv').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            Papa.parse(file, {
+                header: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    results.data.forEach(function(row) {
+                        if(row.Latitude && row.Longitude) {
+                            L.marker([row.Latitude, row.Longitude])
+                             .bindPopup("<b>" + row.Name + "</b><br>" + row.Info)
+                             .addTo(map);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
